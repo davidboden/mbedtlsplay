@@ -1,6 +1,4 @@
 build/
 .vscode/
 CMakeUserPresets.json
-sigfiles/my.key.pem
-sigfiles/public.pem
-sigfiles/signature.bin
+sigfiles/*

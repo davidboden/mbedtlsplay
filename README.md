@@ -1,6 +1,6 @@
 Demonstration of PSA layer implemented by mbedtls.
 
-We'll generate an ECDSA 521 keypair on MacOS using openssl and then use the private key to sign `signme.txt`.
+We'll generate an ECDSA 256 keypair on MacOS using openssl and then use the private key to sign `signme.txt`.
 
 Then we'll run some C code using the mbedtls library to import the public key, read the message and validate the signature.
 
@@ -31,33 +31,34 @@ https://docs.nordicsemi.com/bundle/ps_nrf5340/page/cryptocell.html#cc_standards
 The curves supported by openssl are listed using:
 `openssl ecparam -list_curves`
 
-We'll choose secp521r1, which has a 521-bit key (yeah, not 512 as you might expect; so it's not on a typical byte boundary).
+We'll choose secp256r1, which has a 256-bit key. The 521-bit curve isn't working with the PSA library yet, even though
+it's supported by the Cryptocell-312 on the ARM-M33 chip.
 
 Generate a keypair and separate out the public key:
 ```
 cd sigfiles
-openssl ecparam -name secp521r1 -genkey -noout -out my.key.pem
-openssl ec -in my.key.pem -pubout -out public.pem
+openssl ecparam -name secp256r1 -genkey -noout -out my256.key.pem
+openssl ec -in my256.key.pem -pubout -out public256.pem
 ```
 
-Sign an example file `signme.txt`, thereby producing `signature.bin`:
+Sign an example file `signme.txt`, thereby producing `signature256.bin`:
 ```
-openssl dgst -sign my.key.pem -out signature.bin signme.txt
+openssl dgst -sign my256.key.pem -out signature256.bin signme.txt
 ```
 
 Have a look inside `signature.bin` with:
 ```
-openssl asn1parse -inform der -in signature.bin
+openssl asn1parse -inform der -in signature256.bin
 ```
 
-We can see that it's a DER formatted (ASN1) file with two 66-byte integer values. The PSA library just wants those keys
-as a signature, as a 132-byte array (with 00 padding at the start of each value if necessary to pad it to 66 bytes).
+We can see that it's a DER formatted (ASN1) file with two 32-byte integer values. The PSA library just wants those keys
+as a signature, as a 64-byte array.
 We currently use an mbedtls utility in the C code to transform the DER structure into what the PSA library wants, but
 we probably want to take care of that transformation when creating the signature.
 
 Let's just verify the signature we've produced to make sure everything checks out:
 ```
-openssl dgst -verify public.pem -signature signature.bin signme.txt
+openssl dgst -verify public256.pem -signature signature256.bin signme.txt
 ```
 
 Let's also print out the hash of the original message, so that we can check later that it matches what's printed by the C program:
